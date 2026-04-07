@@ -1,16 +1,25 @@
-import requests
-from bs4 import BeautifulSoup
+import trafilatura
 
-def scrape_article(url: str) -> str:
-    headers = {"User-Agent": "Mozilla/5.0"}
-    resp = requests.get(url, headers=headers, timeout=10)
-    soup = BeautifulSoup(resp.text, "html.parser")
 
-    # Remove nav, ads, scripts
-    for tag in soup(["script","style","nav","footer","aside"]):
-        tag.decompose()
+def fetch_article_text(url: str):
+    """
+    Fetches and extracts the main article text from a URL.
+    Uses trafilatura for clean boilerplate-free extraction.
+    Returns the article text, or None if extraction fails.
+    """
+    try:
+        downloaded = trafilatura.fetch_url(url)
+        if not downloaded:
+            return None
 
-    # Get paragraphs
-    paragraphs = soup.find_all("p")
-    text = " ".join(p.get_text() for p in paragraphs)
-    return text.strip()
+        text = trafilatura.extract(
+            downloaded,
+            include_comments=False,
+            include_tables=False,
+            no_fallback=False,
+        )
+        return text.strip() if text else None
+
+    except Exception as e:
+        print(f"[scraper] Error fetching {url}: {e}")
+        return None
